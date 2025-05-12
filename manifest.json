@@ -3,7 +3,7 @@
     "name": "Focus Tab",
     "version": "1.0",
     "description": "Hides all tabs except one and redirects to a Pomodoro timer.",
-    "permissions": ["tabs", "scripting"],
+    "permissions": ["tabs", "scripting", "storage"],
     "action": {
       "default_popup": "popup.html",
       "default_icon": {
