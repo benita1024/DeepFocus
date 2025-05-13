@@ -2,7 +2,11 @@
 document.addEventListener("DOMContentLoaded", () => {
     const focusBtn = document.getElementById("focusBtn");
     const exitBtn = document.getElementById("exitBtn");
+    const noteField = document.getElementById("quickNote");
+    const saveButton = document.getElementById("saveNote");
+    const saveStatus = document.getElementById("saveStatus");
   
+    // Focus Mode: Close other tabs and redirect
     if (focusBtn) {
       focusBtn.addEventListener("click", async () => {
         try {
@@ -11,7 +15,6 @@ document.addEventListener("DOMContentLoaded", () => {
   
           const closedTabUrls = [];
   
-          // Close all tabs except the one clicked on
           for (const tab of allTabs) {
             if (tab.id !== originalTab.id) {
               closedTabUrls.push(tab.url);
@@ -19,16 +22,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
   
-          // Save closed tabs in session
           await chrome.storage.session.set({ closedTabUrls });
   
-          // Re-query active tab (original tab ID may change)
           const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   
-          // Redirect to Pomofocus
           await chrome.tabs.update(activeTab.id, { url: "https://pomofocus.io/" });
   
-          // Wait until page is fully loaded, then inject overlay script
           chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
             if (tabId === activeTab.id && changeInfo.status === "complete") {
               chrome.scripting.executeScript({
@@ -46,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   
+    // Exit Mode: Restore tabs
     if (exitBtn) {
       exitBtn.addEventListener("click", () => {
         chrome.storage.session.get("closedTabUrls", (data) => {
@@ -60,10 +60,31 @@ document.addEventListener("DOMContentLoaded", () => {
             chrome.tabs.create({ url });
           }
   
-          // Clear session to prevent duplicates
           chrome.storage.session.remove("closedTabUrls");
   
           console.log("Focus Mode exited and tabs restored.");
+        });
+      });
+    }
+  
+    // ✅ Quick Notes: Save + Load
+    const today = new Date().toDateString();
+  
+    if (noteField && saveButton) {
+      chrome.storage.local.get(["note", "noteDate"], (data) => {
+        if (data.noteDate === today) {
+          noteField.value = data.note || "";
+        } else {
+          chrome.storage.local.set({ note: "", noteDate: today });
+          noteField.value = "";
+        }
+      });
+  
+      saveButton.addEventListener("click", () => {
+        const note = noteField.value;
+        chrome.storage.local.set({ note: note, noteDate: today }, () => {
+          saveStatus.textContent = "✅ Note saved!";
+          setTimeout(() => (saveStatus.textContent = ""), 1500);
         });
       });
     }
